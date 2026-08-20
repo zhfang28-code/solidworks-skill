@@ -1,0 +1,4 @@
+interface:
+  display_name: "SolidWorks 建模与审核"
+  short_description: "从工程图构建、审核并交付 SolidWorks 模型、工程数据和 BOM"
+  default_prompt: "使用 $solidworks-skill 根据工程图构建、审核并交付 SolidWorks 模型与 BOM。"

@@ -1,0 +1,8 @@
+*.exe
+*.dll
+*.pdb
+bin/
+obj/
+rebuild_tool_*/
+delivery_manifest.json
+SHA256.txt
