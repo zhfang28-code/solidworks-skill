@@ -1,4 +1,4 @@
 interface:
   display_name: "SolidWorks 建模与审核"
-  short_description: "从工程图构建零件与焊接装配体，复核接触、导出和 BOM"
-  default_prompt: "使用 $solidworks-skill 根据工程图构建可编辑零件或焊接装配体，检查接触与干涉并交付 STEP、审核数据和 BOM。"
+  short_description: "从工程图建模并以五视图闭环复核、单零件纠错和交付 BOM"
+  default_prompt: "使用 $solidworks-skill 根据工程图构建可编辑零件或装配体，输出正面、侧面、俯视、3D 与剖面进行闭环对图；每轮只纠正一个零件，检查接触与干涉并交付 STEP、审核数据和 BOM。"
