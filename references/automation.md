@@ -75,7 +75,9 @@ Builder.exe <output-directory> [--close]
 - 先保存原生模型并再次重建，再导出 STEP 和 PNG。
 - STEP 导出可先用 `IModelDocExtension.SaveAs`，再按版本能力尝试不带 Copy 的 `ModelDoc2.SaveAs4`；两者失败时保留原生模型并明确标记 `step_exported=false`，不得伪造或沿用旧 STEP。
 - 重导已有中性文件前先保存到新修订目录，或把旧文件移入明确的历史目录；不要未经授权删除旧交换文件。
-- PNG 依次显示等轴测、正视、侧视，执行缩放适合和重绘后保存。
+- 完整任务先保存并重开 `SLDDRW`，再导出整张 DWG/DXF、PDF、整张 PNG 和五个独立视图 PNG；文件名、方向和比例必须来自同一组视图对象。
+- DWG/DXF 显式设置目标版本、字体/线型映射、paper space、图纸范围和视图块选项。多比例图纸不得无条件启用 1:1 输出。
+- 正式二维图片采用打印捕获和 300 DPI；三维等轴测使用浅色带边线显示。执行缩放适合、重绘并关闭界面高亮后保存。
 - 输出审查 JSON 时使用稳定字段名和数值单位后缀，例如 `overall_width_mm`、`mass_kg`。
 
 ### 工程图剖视与剖面线

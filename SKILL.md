@@ -1,6 +1,6 @@
 ---
 name: solidworks-skill
-description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM 构建、修改、装配、审查和交付原生可编辑 SolidWorks 模型，覆盖焊接装配体拆件、配合/坐标定位、圆柱相贯贴合、接触与干涉复核、草图/特征规划、齿轮花键、正面/侧面/俯视/3D/剖面闭环对图、单零件事务式纠错、STEP、BOM、错误台账和唯一最终模型集清理。用于 SolidWorks 三维建模、机械装配图建模、现有模型修改、错误零件替换、剖视复核、按图比对、API 自动建模、制造前审核、旧模型清理或 BOM 交付；仅适用于可调用本机 Windows SolidWorks 的环境。"
+description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM 构建、修改、装配、审查和交付原生可编辑 SolidWorks 模型，覆盖草图/特征规划、浅色装配配色、配合与干涉、正面/侧面/俯视/3D/剖面闭环对图、规范图框/比例/图线、可编辑 SLDDRW/DWG/DXF、标准化 PNG/PDF、单零件事务式纠错、STEP、BOM、错误台账和唯一最终模型集清理。用于 SolidWorks 三维建模、机械装配图建模、现有模型修改、错误零件替换、工程图与剖视复核、CAD 可编辑视图导出、图片交付、API 自动建模、制造前审核、旧模型清理或 BOM 交付；仅适用于可调用本机 Windows SolidWorks 的环境。"
 ---
 
 # SolidWorks 建模、审核与 BOM
@@ -22,6 +22,7 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 - 需要 SolidWorks API、C#、COM、编译或批量导出时，先读 [automation.md](references/automation.md)。
 - 输入为装配图、焊接件，或涉及零件配合、圆柱贴合、相贯下料、接触/干涉时，必须读 [assemblies-and-weldments.md](references/assemblies-and-weldments.md)。
 - 从图纸开始完整建模、修改现有模型、替换错误零件、重装配或清理旧模型时，必须读 [closed-loop-modeling-and-correction.md](references/closed-loop-modeling-and-correction.md)。
+- 需要选择装配颜色、创建规范工程图、输出可编辑 CAD 视图或标准图片时，必须读 [appearance-and-drawing-outputs.md](references/appearance-and-drawing-outputs.md)。
 - 零件包含齿轮、花键、链轮或需要真实渐开线时，再读 [gears-and-splines.md](references/gears-and-splines.md)。
 - 在最终审核、生成 BOM 或整理交付目录前，必须读 [review-delivery-bom.md](references/review-delivery-bom.md)。
 
@@ -63,8 +64,8 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 - 每个关键特征创建后检查返回对象；最终执行强制重建并检查错误。
 - 装配体插入组件前预加载零件；API 坐标按组件包围盒中心传入。零件形状变化后不得继续用包围盒最小值代替功能基准定位。
 - 焊接件可采用公共坐标固定装配，但必须在报告中说明；需要运动或设计意图时使用同心、重合、距离和宽度等配合。
-- 为模型展示采用明亮、低饱和、彼此可区分的颜色；颜色只用于识别零件，不得掩盖接触缝隙、干涉或孔槽边界。
-- 至少保存原生 `SLDPRT` 或 `SLDASM`。按任务需要导出 STEP、等轴测/正视/侧视 PNG、模型审查 JSON 和生成日志。
+- 按浅色配色表设置组件级外观和审核显示状态，记录 RGB、9 参数材质数组及组件映射；不得随机选色或把状态警示色保存为正式外观。
+- 至少保存原生 `SLDPRT` 或 `SLDASM`。完整建模任务默认同时生成关联可编辑 `SLDDRW`、整张 `DWG`（需要时附加 DXF）、PDF、整张工程图 PNG，以及正面/侧面/俯视/3D/剖面五张独立 PNG。
 - 将材料、零件号、名称、热处理、精度等级、标准和未实体化要求写入自定义属性，但同时在聊天窗口披露未实体化内容。
 
 ### 6. 审核模型
@@ -80,6 +81,8 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 - 剖面必须是真实工程图剖视：剖切线穿过预期实体，剖视方向正确，保存并重新打开后仍存在有效剖面线；轴、杆和紧固件按制图约定不剖时应无剖面线。不能只凭 API 返回了剖视对象就判定成功。
 - 若原装配图只显示轮廓但未给出能唯一确定形状的尺寸，标为“待确认”，在聊天窗口披露，不得为了视觉相似静默发明尺寸。
 - 发生遮挡、截断、错误轮廓、空剖面、方向颠倒或剖面线丢失时返工，并记录错误台账。
+- 对每个正式视图审核图幅/图框、投影法、比例、页内位置、可见轮廓、隐藏线、中心线、剖切线、剖面填充、视图外包框和图片像素；SolidWorks 的选择高亮边界不得出现在导出文件中。
+- 重新打开 `SLDDRW`，并在可用的 2D CAD 或 SolidWorks 导入器中回读 `DWG/DXF`；确认文字、图层、线型、线宽、块、比例、图框和剖面没有丢失。
 
 ### 7. 生成 BOM
 
@@ -90,8 +93,8 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 
 ### 8. 交付与聊天披露
 
-- 运行 `scripts/Test-SolidWorksDelivery.ps1` 检查必需文件。默认同时传入项目根目录和 `-RequireNoModelsOutsideOutput`；只要最终目录外残留模型，交付状态必须失败。需要清单和哈希时再显式使用 `-WriteManifest`。
-- 最终回复必须列出主模型、通用交换文件、五视图对图报告、工程图/PDF、审核报告和 BOM 的绝对路径。
+- 运行 `scripts/Test-SolidWorksDelivery.ps1` 检查必需文件。完整建模任务默认使用 `-RequireDrawingPackage`，并同时传入项目根目录和 `-RequireNoModelsOutsideOutput`；缺少原生工程图、可编辑 CAD、PDF、整张图片、任一五视图图片或视图审核数据时不得交付。需要清单和哈希时再显式使用 `-WriteManifest`。
+- 最终回复必须列出主模型、STEP、SLDDRW、DWG/DXF、PDF、整张工程图图片、五张独立视图图片、视图规范审核、五视图对图报告、模型审核和 BOM 的绝对路径。
 - 在最终回复中单列“技能外事项 / 待确认”，包括缺失尺寸、假设、未实体化要求、工具限制、人工检验项目和失败项。若没有，明确说明没有。
 - 只声称证据支持的结论；“模型审核通过”不得替代制造放行或计量合格。
 

@@ -7,6 +7,7 @@
 - [质量属性](#质量属性)
 - [BOM 规则](#bom-规则)
 - [推荐交付目录](#推荐交付目录)
+- [工程图与视图交付](#工程图与视图交付)
 - [最终聊天输出](#最终聊天输出)
 
 ## 审核等级
@@ -31,6 +32,8 @@
 - STEP 重新打开后仍是预期数量的闭合实体。
 - 等轴测、正视、侧视图片清晰、无遮挡、无截断。
 - 正面、侧面、俯视、3D 和剖面五视图均已输出，并与参考图建立逐项对照表。
+- 原生工程图、DWG/DXF、PDF、整张工程图 PNG 和五张独立 PNG 来自同一最终模型修订。
+- 每个视图的比例、外包框、页内位置、图线角色、图片像素和回读结果已写入视图规范审核数据。
 
 装配体还必须检查：
 
@@ -99,11 +102,16 @@
 <confirmed-output>/
 ├── <base>.SLDPRT 或 <base>.SLDASM
 ├── <base>.STEP
+├── <base>.SLDDRW
+├── <base>.DWG
+├── <base>.PDF
+├── <base>_整张工程图.png
 ├── <base>_等轴测.png
 ├── <base>_正视.png
 ├── <base>_侧视.png
 ├── <base>_俯视.png
 ├── <base>_A-A剖视.png
+├── <base>_视图规范审核.json
 ├── <base>_五视图对图报告.md
 ├── <base>_模型审查数据.json
 ├── <base>_图纸审核报告.md
@@ -117,6 +125,13 @@
 
 若 STEP 导出失败：保留成功保存的 SLDPRT/SLDASM、预览和审查数据，但交付状态必须为“未就绪”或“有条件”；旧 STEP 只能放入历史目录，不能冒充当前修订版。
 
+## 工程图与视图交付
+
+- `SLDDRW` 是关联可编辑权威文件；DWG/DXF 是跨 CAD 可编辑副本；PNG/PDF 是视觉和打印证据，三者不能互相替代。
+- 整张 DWG 优先把视图导出为块并保留 paper space、图框和比例。回读工具、版本、图层/块/字体/线型/线宽/比例结果必须记录。
+- 正面、侧面、俯视、等轴测和剖面各输出一张 PNG；另输出含图框和标题栏的整张工程图 PNG/PDF。
+- 按 [appearance-and-drawing-outputs.md](appearance-and-drawing-outputs.md) 审核颜色、图框、视图大小、线型和图片像素。任何阻塞项存在时不得返回 `Ready=true`。
+
 ### 项目级唯一模型门禁
 
 在最终回复前运行：
@@ -127,6 +142,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -OutputDirectory '<project-root>\<final-directory>' `
   -ProjectRoot '<project-root>' `
   -RequireNoModelsOutsideOutput `
+  -RequireDrawingPackage `
   -BaseName '<base>' -DocumentType Assembly -AsJson
 ```
 
