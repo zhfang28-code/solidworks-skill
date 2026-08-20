@@ -41,8 +41,10 @@ Builder.exe <output-directory> [--close]
 
 1. 先尝试 `Marshal.GetActiveObject("SldWorks.Application")`。
 2. 连接失败时再创建 `SldWorksClass`，并记录 `createdApplication=true`。
-3. 只在收到 `--close` 且 `createdApplication=true` 时调用 `ExitApp()`。
-4. 不更改用户已有文档，不关闭与本任务无关的窗口。
+3. 新建实例后立即记录 `sw.GetProcessID()`，用于证明实例归属和诊断残留进程。
+4. 只在收到 `--close` 且 `createdApplication=true` 时关闭本任务文档、调用 `ExitApp()` 并释放 COM 引用。
+5. 退出后检查该 PID 是否仍存在。不得按进程名广泛强杀 SolidWorks；无法证明归属时请用户保存并退出会话。
+6. 不更改用户已有文档，不关闭与本任务无关的窗口。
 
 ### 模板和单位
 
@@ -63,6 +65,8 @@ Builder.exe <output-directory> [--close]
 
 - 使用静默保存并记录 `errors`、`warnings`；非零值必须进入聊天窗口和日志。
 - 先保存原生模型并再次重建，再导出 STEP 和 PNG。
+- STEP 导出可先用 `IModelDocExtension.SaveAs`，再按版本能力尝试不带 Copy 的 `ModelDoc2.SaveAs4`；两者失败时保留原生模型并明确标记 `step_exported=false`，不得伪造或沿用旧 STEP。
+- 重导已有中性文件前先保存到新修订目录，或把旧文件移入明确的历史目录；不要未经授权删除旧交换文件。
 - PNG 依次显示等轴测、正视、侧视，执行缩放适合和重绘后保存。
 - 输出审查 JSON 时使用稳定字段名和数值单位后缀，例如 `overall_width_mm`、`mass_kg`。
 
@@ -88,6 +92,8 @@ Builder.exe <output-directory> [--close]
 - 新建零件返回空：模板路径无效或 SolidWorks 正在显示阻塞对话框。
 - 特征返回空：草图未闭合、方向错误、轮廓自交、偏置起点无效或没有合并实体。
 - 保存失败：目标文件存在、目录不可写、格式扩展名不匹配或导出器不可用。
+- `AddComponent5` 返回空或位置异常：零件未预加载、装配体未激活，或错误地把参数坐标当成零件原点而不是包围盒中心。
+- STEP 返回 `swGenericSaveError=1`：先在新路径复现以排除覆盖/锁文件，再检查重建、实体有效性、组件解析状态和残留 SolidWorks 会话；不要无限重试或强杀不明会话。
 - API 卡住：先查看 SolidWorks 是否有模态对话框；不要用无限等待。按不超过 60 秒的周期检查并向用户更新。
 
 任何本参考未列出的 API 行为、插件依赖或版本差异，都要作为“技能外事项”在聊天窗口说明后再处理。

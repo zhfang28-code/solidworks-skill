@@ -1,6 +1,6 @@
 ---
 name: solidworks-skill
-description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM 构建、修改、审查和交付原生可编辑 SolidWorks 模型，规划草图、拉伸、旋转、切除、阵列、齿轮与花键特征，并输出 STEP、预览图、审查数据和 BOM。用于用户要求 SolidWorks 三维建模、按图复核、API 自动建模、模型修订、制造前审核或 BOM 交付时；仅适用于可调用本机 Windows SolidWorks 的环境。"
+description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM 构建、修改、装配、审查和交付原生可编辑 SolidWorks 模型，覆盖焊接装配体拆件、配合/坐标定位、圆柱相贯贴合、接触与干涉复核、草图/特征规划、齿轮花键、STEP、预览图、审查数据和 BOM。用于用户要求 SolidWorks 三维建模、机械装配图建模、焊接支架或管板接触修订、按图复核、API 自动建模、制造前审核或 BOM 交付时；仅适用于可调用本机 Windows SolidWorks 的环境。"
 ---
 
 # SolidWorks 建模、审核与 BOM
@@ -17,6 +17,7 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 
 - 输入为工程图、截图、PDF 或尺寸表时，先读 [drawing-analysis.md](references/drawing-analysis.md)。
 - 需要 SolidWorks API、C#、COM、编译或批量导出时，先读 [automation.md](references/automation.md)。
+- 输入为装配图、焊接件，或涉及零件配合、圆柱贴合、相贯下料、接触/干涉时，必须读 [assemblies-and-weldments.md](references/assemblies-and-weldments.md)。
 - 零件包含齿轮、花键、链轮或需要真实渐开线时，再读 [gears-and-splines.md](references/gears-and-splines.md)。
 - 在最终审核、生成 BOM 或整理交付目录前，必须读 [review-delivery-bom.md](references/review-delivery-bom.md)。
 
@@ -38,9 +39,11 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 ### 3. 冻结建模方案
 
 - 选定原点、轴向、基准面和基准轴，使其与图纸基准一致。
+- 对装配图先冻结零件拆分表、公共坐标系、固定基准件、装配顺序、接触类型和焊缝表达边界；不要先做整体多实体再反推零件。
 - 列出有序特征树：基体 → 增材特征 → 切除/孔 → 阵列 → 倒角/圆角 → 属性。
 - 优先创建原生可编辑草图和特征；为草图、特征、基准和自定义属性使用可读名称。
 - 对复杂轮廓先验证单个闭合轮廓，再阵列或生成完整轮廓。避免依赖不稳定的临时边编号。
+- 凡平板、肋板与圆筒接触，不得只看中心剖面相切；必须验证整个板厚范围。需要面贴合时创建同径圆柱鞍形面或相贯切除。
 
 ### 4. 检查并选择执行方式
 
@@ -53,12 +56,17 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 - SolidWorks API 的长度输入统一换算为米，审查和报告统一换算回毫米。
 - 在构建器中集中定义参数，不把关键尺寸散落为魔法数字。
 - 每个关键特征创建后检查返回对象；最终执行强制重建并检查错误。
+- 装配体插入组件前预加载零件；API 坐标按组件包围盒中心传入。零件形状变化后不得继续用包围盒最小值代替功能基准定位。
+- 焊接件可采用公共坐标固定装配，但必须在报告中说明；需要运动或设计意图时使用同心、重合、距离和宽度等配合。
+- 为模型展示采用明亮、低饱和、彼此可区分的颜色；颜色只用于识别零件，不得掩盖接触缝隙、干涉或孔槽边界。
 - 至少保存原生 `SLDPRT` 或 `SLDASM`。按任务需要导出 STEP、等轴测/正视/侧视 PNG、模型审查 JSON 和生成日志。
 - 将材料、零件号、名称、热处理、精度等级、标准和未实体化要求写入自定义属性，但同时在聊天窗口披露未实体化内容。
 
 ### 6. 审核模型
 
 - 检查：重建错误、实体数量、包围盒、总尺寸、关键直径/厚度/孔槽、质量属性、特征树名称和导出错误码。
+- 对装配体增加：组件数量/抑制状态、基准位置、接触面覆盖范围、间隙、穿透、装配总包络和各组件质量汇总。
+- 对圆柱贴合件使用正视剖面、等轴测近景和解析计算交叉检查；`平面在圆筒顶点相切`不等于`板厚范围面贴合`。
 - 将每项标为“通过”“名义值通过”“需人工/计量确认”或“失败”。
 - 重新打开或独立检查 STEP；至少确认文件非空，条件允许时确认闭合流形实体数量。
 - 使用三个正交方向和等轴测预览做目视复核。发生遮挡、截断或错误轮廓时返工。
@@ -82,4 +90,5 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 - `scripts/Test-SolidWorksEnvironment.ps1`：只读发现 SolidWorks、模板、互操作程序集和 C# 编译器。
 - `scripts/Invoke-SolidWorksBuilder.ps1`：把零件专用 C# builder 编译到新建的时间戳工具目录，并选择性运行。
 - `scripts/SolidWorksSmokeTest.cs`：创建简单圆柱零件，用于验证 API 链路；不得作为工程零件模板直接交付。
+- `scripts/Test-PlateCylinderContact.ps1`：计算平板顶点相切时板厚边缘的理论缝隙，并判断是否需要 ØD 鞍形贴合面。
 - `scripts/Test-SolidWorksDelivery.ps1`：检查交付件并可生成 manifest 与 SHA-256。
