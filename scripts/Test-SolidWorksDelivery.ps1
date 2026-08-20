@@ -18,6 +18,8 @@ param(
     [string]$BuildLogPath,
     [switch]$RequireBom,
     [string]$BomPath,
+    [string]$ProjectRoot,
+    [switch]$RequireNoModelsOutsideOutput,
     [switch]$WriteManifest,
     [switch]$Force,
     [switch]$AsJson
@@ -32,6 +34,38 @@ if (-not [System.IO.Path]::IsPathRooted($OutputDirectory)) {
 $resolvedOutput = [System.IO.Path]::GetFullPath($OutputDirectory)
 if (-not (Test-Path -LiteralPath $resolvedOutput -PathType Container)) {
     throw "交付目录不存在：$resolvedOutput"
+}
+
+function Test-PathWithinRoot {
+    param(
+        [Parameter(Mandatory = $true)][string]$Candidate,
+        [Parameter(Mandatory = $true)][string]$Root
+    )
+
+    $resolvedCandidate = [System.IO.Path]::GetFullPath($Candidate)
+    $resolvedRoot = [System.IO.Path]::GetFullPath($Root)
+    if ($resolvedCandidate.Equals($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+    }
+    $rootPrefix = $resolvedRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+    return $resolvedCandidate.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+$resolvedProjectRoot = $null
+if (-not [string]::IsNullOrWhiteSpace($ProjectRoot)) {
+    if (-not [System.IO.Path]::IsPathRooted($ProjectRoot)) {
+        throw 'ProjectRoot 必须是绝对路径。'
+    }
+    $resolvedProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
+    if (-not (Test-Path -LiteralPath $resolvedProjectRoot -PathType Container)) {
+        throw "项目根目录不存在：$resolvedProjectRoot"
+    }
+    if (-not (Test-PathWithinRoot -Candidate $resolvedOutput -Root $resolvedProjectRoot)) {
+        throw "OutputDirectory 必须位于 ProjectRoot 内：$resolvedOutput"
+    }
+}
+elseif ($RequireNoModelsOutsideOutput) {
+    throw '使用 RequireNoModelsOutsideOutput 时必须同时提供 ProjectRoot。'
 }
 
 function Resolve-DeliveryPath {
@@ -77,13 +111,50 @@ $checks = foreach ($item in $expected) {
 }
 
 $missing = @($checks | Where-Object { $_.Required -and (-not $_.Exists -or $_.SizeBytes -le 0) })
+$modelExtensions = @('.SLDPRT', '.SLDASM', '.SLDDRW', '.STEP', '.STP')
+$outsideModels = @()
+if ($resolvedProjectRoot) {
+    $outsideModels = @(
+        Get-ChildItem -LiteralPath $resolvedProjectRoot -Recurse -File |
+            Where-Object {
+                $modelExtensions -contains $_.Extension.ToUpperInvariant() -and
+                -not (Test-PathWithinRoot -Candidate $_.FullName -Root $resolvedOutput)
+            } |
+            Sort-Object FullName |
+            ForEach-Object {
+                [pscustomobject]@{
+                    Path = [System.IO.Path]::GetFullPath($_.FullName)
+                    SizeBytes = $_.Length
+                    Sha256 = $(if ($_.Length -gt 0) { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash } else { $null })
+                }
+            }
+    )
+}
+
+$hygieneFailed = $RequireNoModelsOutsideOutput -and $outsideModels.Count -gt 0
+$blockingReasons = @()
+if ($missing.Count -gt 0) {
+    $blockingReasons += '缺少一个或多个必需交付文件。'
+}
+if ($hygieneFailed) {
+    $blockingReasons += "最终目录外仍有 $($outsideModels.Count) 个 SolidWorks/STEP 模型文件。"
+}
 $result = [pscustomobject]@{
-    Ready = ($missing.Count -eq 0)
+    Ready = ($missing.Count -eq 0 -and -not $hygieneFailed)
     OutputDirectory = $resolvedOutput
     BaseName = $BaseName
     DocumentType = $DocumentType
     Checks = @($checks)
     MissingRequired = @($missing)
+    ModelSetHygiene = [pscustomobject]@{
+        Required = [bool]$RequireNoModelsOutsideOutput
+        ProjectRoot = $resolvedProjectRoot
+        AllowedModelDirectory = $resolvedOutput
+        ModelExtensions = @($modelExtensions)
+        OutsideModelCount = $outsideModels.Count
+        OutsideModels = @($outsideModels)
+    }
+    BlockingReasons = @($blockingReasons)
     CheckedAt = (Get-Date).ToString('o')
 }
 
@@ -96,7 +167,7 @@ if ($WriteManifest) {
         }
     }
 
-    $result | ConvertTo-Json -Depth 7 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
+    $result | ConvertTo-Json -Depth 9 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
     $hashLines = $checks |
         Where-Object { $_.Sha256 } |
         ForEach-Object { $_.Sha256 + '  ' + [System.IO.Path]::GetFileName($_.Path) }
@@ -104,7 +175,7 @@ if ($WriteManifest) {
 }
 
 if ($AsJson) {
-    $result | ConvertTo-Json -Depth 7
+    $result | ConvertTo-Json -Depth 9
 }
 else {
     $result

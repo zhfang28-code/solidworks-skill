@@ -40,6 +40,7 @@
 - 不应接触的位置没有穿透，焊接接触与实体焊道的表达边界已披露；
 - 修改几何后重新读取质量属性并刷新 BOM，不沿用旧质量。
 - 单零件修订后，未修改零件哈希与修订前一致；错误零件只在候选件和重装配全部通过后删除。
+- 默认交付只保留一个有效模型集；项目根目录、历史目录、候选目录和旧零件目录不得残留模型格式文件。
 
 工程图剖视还必须检查：
 
@@ -115,6 +116,21 @@
 重建源代码和编译工具放入独立子目录，避免与主交付件混杂。不要把安装目录中的 interop DLL 提交到 GitHub。
 
 若 STEP 导出失败：保留成功保存的 SLDPRT/SLDASM、预览和审查数据，但交付状态必须为“未就绪”或“有条件”；旧 STEP 只能放入历史目录，不能冒充当前修订版。
+
+### 项目级唯一模型门禁
+
+在最终回复前运行：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File scripts/Test-SolidWorksDelivery.ps1 `
+  -OutputDirectory '<project-root>\<final-directory>' `
+  -ProjectRoot '<project-root>' `
+  -RequireNoModelsOutsideOutput `
+  -BaseName '<base>' -DocumentType Assembly -AsJson
+```
+
+`ModelSetHygiene.OutsideModelCount` 必须为 `0`，且 `Ready` 必须为 `true`。旧图片、日志、JSON 和源代码可以保留追溯；旧 `SLDPRT/SLDASM/SLDDRW/STEP/STP` 默认不能留在最终目录外。用户明确要求保留历史模型时，取消此硬门禁并在聊天窗口完整披露。
 
 ## 最终聊天输出
 

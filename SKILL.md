@@ -1,6 +1,6 @@
 ---
 name: solidworks-skill
-description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM 构建、修改、装配、审查和交付原生可编辑 SolidWorks 模型，覆盖焊接装配体拆件、配合/坐标定位、圆柱相贯贴合、接触与干涉复核、草图/特征规划、齿轮花键、正面/侧面/俯视/3D/剖面闭环对图、单零件纠错、STEP、预览图、审查数据和 BOM。用于用户要求 SolidWorks 三维建模、机械装配图建模、焊接支架或管板接触修订、按图复核、API 自动建模、制造前审核或 BOM 交付时；仅适用于可调用本机 Windows SolidWorks 的环境。"
+description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM 构建、修改、装配、审查和交付原生可编辑 SolidWorks 模型，覆盖焊接装配体拆件、配合/坐标定位、圆柱相贯贴合、接触与干涉复核、草图/特征规划、齿轮花键、正面/侧面/俯视/3D/剖面闭环对图、单零件事务式纠错、STEP、BOM、错误台账和唯一最终模型集清理。用于 SolidWorks 三维建模、机械装配图建模、现有模型修改、错误零件替换、剖视复核、按图比对、API 自动建模、制造前审核、旧模型清理或 BOM 交付；仅适用于可调用本机 Windows SolidWorks 的环境。"
 ---
 
 # SolidWorks 建模、审核与 BOM
@@ -14,12 +14,14 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 5. 只在物理 Windows 主机上调用本机 SolidWorks。启动 GUI 或执行自动建模前，遵循当前环境的审批要求。找不到 SolidWorks、模板或互操作程序集时停止写入，先在聊天窗口报告。
 6. 每次识别到建模、装配、工程图或自动化错误，都要写入错误台账，至少包含：错误对象、现象、影响、原因、修复动作、验证证据和状态。不得用最终成功覆盖失败过程。
 7. 纠错时一次只修改一个零件。先记录所有零件哈希并把修正版建到临时文件；只有修正版零件、重装配、干涉和固定五视图复核全部通过后，才能删除错误零件并将修正版提升为正式文件。未修改零件的哈希必须保持一致。
+8. 默认交付必须只有一个有效模型集。最终审核要扫描项目根目录；若最终目录之外仍有 `SLDPRT/SLDASM/SLDDRW/STEP/STP`，不得返回 `Ready=true`。只有用户明确要求保留历史模型时才允许例外，并必须在聊天窗口列出位置与风险。
 
 ## 参考资料路由
 
 - 输入为工程图、截图、PDF 或尺寸表时，先读 [drawing-analysis.md](references/drawing-analysis.md)。
 - 需要 SolidWorks API、C#、COM、编译或批量导出时，先读 [automation.md](references/automation.md)。
 - 输入为装配图、焊接件，或涉及零件配合、圆柱贴合、相贯下料、接触/干涉时，必须读 [assemblies-and-weldments.md](references/assemblies-and-weldments.md)。
+- 从图纸开始完整建模、修改现有模型、替换错误零件、重装配或清理旧模型时，必须读 [closed-loop-modeling-and-correction.md](references/closed-loop-modeling-and-correction.md)。
 - 零件包含齿轮、花键、链轮或需要真实渐开线时，再读 [gears-and-splines.md](references/gears-and-splines.md)。
 - 在最终审核、生成 BOM 或整理交付目录前，必须读 [review-delivery-bom.md](references/review-delivery-bom.md)。
 
@@ -87,7 +89,7 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 
 ### 8. 交付与聊天披露
 
-- 运行 `scripts/Test-SolidWorksDelivery.ps1` 检查必需文件；需要清单和哈希时再显式使用 `-WriteManifest`。
+- 运行 `scripts/Test-SolidWorksDelivery.ps1` 检查必需文件。默认同时传入项目根目录和 `-RequireNoModelsOutsideOutput`；只要最终目录外残留模型，交付状态必须失败。需要清单和哈希时再显式使用 `-WriteManifest`。
 - 最终回复必须列出主模型、通用交换文件、五视图对图报告、工程图/PDF、审核报告和 BOM 的绝对路径。
 - 在最终回复中单列“技能外事项 / 待确认”，包括缺失尺寸、假设、未实体化要求、工具限制、人工检验项目和失败项。若没有，明确说明没有。
 - 只声称证据支持的结论；“模型审核通过”不得替代制造放行或计量合格。
@@ -98,4 +100,4 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 - `scripts/Invoke-SolidWorksBuilder.ps1`：把零件专用 C# builder 编译到新建的时间戳工具目录，并选择性运行。
 - `scripts/SolidWorksSmokeTest.cs`：创建简单圆柱零件，用于验证 API 链路；不得作为工程零件模板直接交付。
 - `scripts/Test-PlateCylinderContact.ps1`：计算平板顶点相切时板厚边缘的理论缝隙，并判断是否需要 ØD 鞍形贴合面。
-- `scripts/Test-SolidWorksDelivery.ps1`：检查交付件并可生成 manifest 与 SHA-256。
+- `scripts/Test-SolidWorksDelivery.ps1`：检查交付件、项目级旧模型残留，并可生成 manifest 与 SHA-256。
