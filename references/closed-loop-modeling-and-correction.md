@@ -216,6 +216,13 @@ HatchType = None
 
 旧 PNG、PDF、日志、JSON、BOM 和源代码可保留追溯。若用户要求把历史模型也保留，必须在聊天窗口说明将存在多个有效模型集，并取消“唯一最终模型”结论。
 
+### 临时编译目录清理
+
+- 项目专用正式源码保留在 `<project-root>\重建工具源`；先确认其中包含最新 builder、检查器和修订脚本。
+- `rebuild_tool_yyyyMMdd_HHmmss_fff` 是编译副本，不是模型或正式源码。成功构建且无进程从中运行时应清理；失败版本只保留到根因记录完成。
+- 清理前验证目录位于确认的项目根目录或 BuildRoot 内、名称严格匹配、不是重解析点，并确认内部没有 `SLDPRT/SLDASM/SLDDRW/STEP/STP`。
+- 不删除 `重建工具源`，不把临时 EXE/DLL 放入最终交付目录。若需要复现历史二进制，使用 `-KeepBuildDirectory` 并在聊天窗口披露。
+
 ## 阶段 8：BOM、清单和聊天披露
 
 1. 从最终重建实体重新读取单重；不得沿用修订前质量。
@@ -276,6 +283,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 | 最终目录正确但项目仍有旧模型 | 交付脚本只检查必需文件 | 启用项目根目录唯一模型门禁 |
 | 大量 SW 后台进程 | COM 未释放或异常退出 | 记录自有 PID；不广泛强杀未知会话 |
 | `.ps1` 无法加载 | 当前 PowerShell 执行策略禁止脚本 | 用独立 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ...` 调用；不修改机器级策略 |
+| 项目出现多个 `rebuild_tool_*` | 编译目录放在模型目录且成功后未清理 | 正式源码集中保存；临时根目录隔离；成功后自动清理 |
 
 每次出现新错误都追加到错误台账，并判断能否转化为脚本门禁；可自动检查的错误不得只保留为文字提醒。
 
@@ -292,4 +300,5 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 - [ ] BOM 从最终实体刷新，公式错误为 0。
 - [ ] 最终目录外模型数为 0，或历史模型保留已获明确授权并披露。
 - [ ] 错误台账包含现象、原因、修复和证据。
+- [ ] 正式 builder 源码已集中保存，交付目录无 `rebuild_tool_*` 临时编译目录。
 - [ ] `Ready=true` 后才输出完成结论。

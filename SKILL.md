@@ -53,6 +53,7 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 
 - 运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-SolidWorksEnvironment.ps1 -AsJson` 做只读探测；这只放宽新建进程，不修改持久执行策略。
 - 少量交互建模可使用 GUI；需要复现、批量生成或严格参数化时，生成零件专用 C# builder，并用 `scripts/Invoke-SolidWorksBuilder.ps1` 编译运行。
+- 将零件专用 builder 的正式源码保存在项目的 `重建工具源` 目录；时间戳 `rebuild_tool_*` 仅是可再生成的编译产物。包装脚本默认在系统临时目录编译并在成功后清理，只有诊断失败或用户明确要求时才保留。
 - 首次使用或 API 状态可疑时，可先编译 `scripts/SolidWorksSmokeTest.cs`；只有在用户确认的测试目录中才运行它。
 
 ### 5. 构建与导出
@@ -97,7 +98,7 @@ description: "从工程图（PNG/JPG/PDF）、尺寸表或现有 SLDPRT/SLDASM �
 ## 附带脚本
 
 - `scripts/Test-SolidWorksEnvironment.ps1`：只读发现 SolidWorks、模板、互操作程序集和 C# 编译器。
-- `scripts/Invoke-SolidWorksBuilder.ps1`：把零件专用 C# builder 编译到新建的时间戳工具目录，并选择性运行。
+- `scripts/Invoke-SolidWorksBuilder.ps1`：在隔离的时间戳临时目录编译并选择性运行零件专用 builder；成功后默认清理编译产物，`-KeepBuildDirectory` 仅用于诊断。
 - `scripts/SolidWorksSmokeTest.cs`：创建简单圆柱零件，用于验证 API 链路；不得作为工程零件模板直接交付。
 - `scripts/Test-PlateCylinderContact.ps1`：计算平板顶点相切时板厚边缘的理论缝隙，并判断是否需要 ØD 鞍形贴合面。
 - `scripts/Test-SolidWorksDelivery.ps1`：检查交付件、项目级旧模型残留，并可生成 manifest 与 SHA-256。

@@ -22,18 +22,26 @@ Builder.exe <output-directory> [--close]
 - 返回码 `0` 表示构建和保存成功，非零表示失败。
 - 记录 SolidWorks revision、模板路径、每个关键特征、保存错误码和异常 HRESULT。
 
+### 源代码与编译产物分层
+
+- 每张工程图的几何、尺寸、零件名、装配关系和视图逻辑通常不同，因此零件专用 builder 不是跨项目通用源码，不得整份复制进 skill 当作模板。
+- 把经验证的项目专用 `.cs` 保存在 `<project-root>\重建工具源`，作为该项目的正式可追溯源码。
+- skill 只保留通用接口、会话生命周期、单位换算、保存导出、审核和安全清理机制；新任务依据图纸生成新的专用 builder。
+- `rebuild_tool_yyyyMMdd_HHmmss_fff` 只包含源文件副本、临时 EXE 和 interop DLL 副本，不是正式交付件。
+- `Invoke-SolidWorksBuilder.ps1` 默认在系统临时目录下构建，并在编译或执行成功后删除该时间戳目录；失败时保留以供诊断。只有需要检查 EXE/DLL 时才使用 `-KeepBuildDirectory`。
+
 使用包装脚本：
 
 ```powershell
 & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" `
   -NoProfile -ExecutionPolicy Bypass `
   -File '<skill>\scripts\Invoke-SolidWorksBuilder.ps1' `
-  -SourcePath 'D:\work\BuildPart.cs' `
+  -SourcePath 'D:\confirmed-project\重建工具源\BuildPart.cs' `
   -OutputDirectory 'D:\confirmed-output' `
   -CompileOnly
 ```
 
-确认编译后，去掉 `-CompileOnly` 执行。需要结束新启动的实例时加 `-CloseWhenFinished`。
+默认编译成功后会清理临时目录；确认编译后，去掉 `-CompileOnly` 执行。需要保留编译产物时显式加 `-KeepBuildDirectory`；需要结束新启动的实例时加 `-CloseWhenFinished`。
 
 ## API 实现要点
 
